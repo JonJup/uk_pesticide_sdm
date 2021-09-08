@@ -1,3 +1,9 @@
+# Data folder
+/data
+
+# packrat folder
+/R/packrat/*
+
 # History files
 .Rhistory
 .Rapp.history

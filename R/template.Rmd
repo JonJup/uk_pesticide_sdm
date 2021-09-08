@@ -1,0 +1,28 @@
+---
+title: "title"
+output:
+        prettydoc::html_pretty:
+                theme: cayman
+                highlight: github
+author: Jonathan Jupke
+---
+
+
+**Purpose**     
+**Data files**    
+**Date**    
+- script created:     
+- script last modified: `r Sys.Date()`    
+
+***    
+
+```{r dependencies}
+```
+
+
+***    
+
+```{r}
+sessionInfo()
+```
+

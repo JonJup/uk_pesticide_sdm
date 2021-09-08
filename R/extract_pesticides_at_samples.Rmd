@@ -1,0 +1,111 @@
+---
+title: "Extract pesticide concentration at sample locations"
+output:
+        prettydoc::html_pretty:
+                theme: cayman
+                highlight: github
+author: Jonathan Jupke
+---
+
+
+**Purpose**     
+In this script I extract the pesticide concentration for all 162 pesticides for the samples from the UK biomonitoring.     
+**Data files**    
+**Date**    
+- script created:     2021.09.07     
+- script last modified: `r Sys.Date()`    
+
+***    
+
+```{r dependencies, warning = FALSE, message = FALSE}
+library(data.table)
+library(dplyr)
+library(magrittr)
+library(purrr)
+library(terra)
+library(tidyr)
+library(sf)
+library(stringr)
+```
+
+First I wrap the extraction in a function. 
+```{r}
+#@Param X: the name of the raster to extract from 
+#@Param y: the sampling sites 
+
+extract_raster <- function(x,y){
+        #- get the pesticide name 
+        pesticide.name <-
+                as.character(x) |> 
+                str_extract(pattern = "data/.*\\.tif$") |> 
+                str_remove(pattern = "data/") |> 
+                str_remove(pattern = "\\.tif")
+        #- read in the raster 
+        x <- rast(x)
+
+        #- extract values 
+        z <- terra::extract(x = x, 
+                            y = y)
+        z <- data.table(site_id = y$site_id,
+                        placeholder = z[, 2])
+        names(z)[2] <- pesticide.name
+        z
+        
+}
+```
+
+Load the biomonitoring data and extract sites. 
+```{r}
+biodata    <-  readRDS("~/01_Uni/my_papers/2021_02_getreal_mzb_paper/freshwater-typologies-mzb/data/original data/monitoring_uk/2021-09-03_final.rds")
+sites <- 
+        biodata[year > 2014] |> 
+        unique(by = "site_id") |> 
+        st_as_sf(coords = c("x.coord", "y.coord"), crs = biodata$EPSG[1])
+sites %<>% select(site_id)
+sites %<>% vect()
+
+```
+
+Compile a list of all the pesticide rasters.
+```{r}
+pesticide.folder <- "E://Arbeit/Data/UK_Pesticide/UK_Pesticide/CEH Land Cover Plus Pesticides England Scotland Wales/data/"
+pesticide.files <- fs::dir_ls(pesticide.folder)
+```
+
+Extract values.
+```{r}
+site_w_pesticides <- 
+        map(.x = pesticide.files,
+            .f = ~ extract_raster(x = .x, y = sites)) |>
+        reduce(left_join, by = "site_id")
+```
+
+I would also like to have this table in long format. 
+```{r}
+pesticides.long <- pivot_longer(site_w_pesticides, cols = !site_id, names_to = "compound", values_to = "amount")
+```
+Missing values (NaN) correspond to cells where the pesticide is not applied (at least according to the model). 
+I will set them to zero. 
+```{r}
+pesticides.long[which(is.nan(pesticides.long$amount)), "amount"] <- 0
+```
+And now use this updated data set to recreated a new wide data set. 
+```{r}
+pesticides.wide <- pivot_wider(data = pesticides.long, id_cols = "site_id", names_from = "compound", values_from = "amount")
+```
+
+Save data as list. 
+```{r}
+out.ls <- list(wide = pesticides.wide, 
+               long = pesticides.long)
+saveRDS(object = out.ls, 
+        file = paste0("../data/", Sys.Date(), "_sites_w_pesticides.rds"))
+```
+
+
+***    
+
+```{r}
+sessionInfo()
+```
+

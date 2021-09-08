@@ -1,0 +1,46 @@
+---
+title: "Setup Packrat"
+output: rmdformats::downcute
+author: Jonathan Jupke
+---
+
+
+**Purpose**     
+This script sets up the packrat package for this project.    
+**Data files**    
+none    
+**Date**    
+- script created:  2021.09.07   
+- script last modified: `r Sys.Date()`    
+
+***    
+
+```{r dependencies}
+library(packrat)
+```
+
+```{r}
+packrat::init()
+```
+
+
+```{r}
+install.packages("data.table")
+install.packages("dplyr")
+install.packages("fs")
+install.packages("purrr")
+install.packages("rgdal")
+install.packages("stringr")
+install.packages("terra")
+install.packages("tidyr")
+install.packages("tmap")
+
+```
+
+
+***    
+
+```{r}
+sessionInfo()
+```
+

@@ -1,0 +1,84 @@
+---
+title: "Explore pesticide data"
+output:   
+        prettydoc::html_pretty:
+                theme: cayman
+                highlight: github
+author: Jonathan Jupke
+---
+
+
+**Purpose**     
+Explore the pesticide data. The data consist of one .tif file for each of 162 pesticides.                
+**Data files**    
+
+**Date**    
+- script created:  2021.09.07   
+- script last modified: `r Sys.Date()`    
+
+***    
+
+```{r dependencies, warning=FALSE, message = FALSE}
+library(data.table)
+library(sf)
+library(terra)
+library(tmap)
+tmap_mode("view")
+```
+
+Read in one of the pesticide rasters ... 
+```{r}
+pesticides <- rast("E://Arbeit/Data/UK_Pesticide/UK_Pesticide/CEH Land Cover Plus Pesticides England Scotland Wales/data/Acetamiprid.tif")
+biodata    <-  readRDS("~/01_Uni/my_papers/2021_02_getreal_mzb_paper/freshwater-typologies-mzb/data/original data/monitoring_uk/2021-09-03_final.rds")
+```
+
+... and inspect it ... 
+```{r}
+pesticides
+```
+
+... and plot it. 
+```{r, warn = FALSE}
+tm_shape(pesticides[[1]]) + tm_raster() + tm_facets(as.layers = TRUE)
+```
+The first layer gives the estimated application amount (kg/yr) and the second the percentage uncertainty. 
+
+Now I extract the sites from the UK Monitoring data and then plot both the raster and the points together. 
+```{r}
+sites <- biodata[year > 2014]
+sites <- unique(sites, by = "site_id")
+sites <- st_as_sf(sites, coords = c("x.coord", "y.coord"), crs = sites$EPSG[1])
+```
+
+```{r}
+pesticides1 <- pesticides["Ace_1"]
+tm_shape(pesticides1) + tm_raster() + tm_shape(sites) + tm_dots()
+```
+
+# Try to connect the two
+
+Sample 10 random points from the samples 
+```{r}
+sites.2 <- sites[1:10, ]
+```
+
+Transform the subsample to the SpatVector class. 
+```{r}
+sites.3 <- terra::vect(sites.2)
+```
+
+```{r}
+extraction <- terra::extract(
+        y = sites.3, 
+        x = pesticides1
+        )
+```
+
+works great! 
+
+***    
+
+```{r}
+sessionInfo()
+```
+
